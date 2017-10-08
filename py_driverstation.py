@@ -8,6 +8,7 @@ import configparser
 
 from PyQt5.QtWidgets import QAction, QApplication, QMainWindow
 from PyQt5.QtCore import QTimer
+from PyQt5.QtGui import QColor
 
 from networktables import NetworkTables
 
@@ -50,6 +51,14 @@ class PyDriverStation(Ui_MainWindow):
         self.connect_buttons()
         self.setup_team_selector()
 
+        self.status_colors = {
+            False: QColor(200, 0, 0),
+            True: QColor(0, 180, 0)
+        }
+        self.connection_status = False
+        self.ConnectStatus.setStyleSheet(
+            "background-color: %s" % self.status_colors[self.connection_status].name())
+
         self.timer = QTimer()
         self.timer.timeout.connect(self.update)
         self.timer.start(100)
@@ -90,16 +99,16 @@ class PyDriverStation(Ui_MainWindow):
         }
 
         self.AutonomousModeButton.clicked.connect(
-            lambda _: self.mode_button_press(self.AutonomousModeButton))
+            lambda: self.mode_button_press(self.AutonomousModeButton))
         self.TeleopModeButton.clicked.connect(
-            lambda _: self.mode_button_press(self.TeleopModeButton))
+            lambda: self.mode_button_press(self.TeleopModeButton))
         self.TestModeButton.clicked.connect(
-            lambda _: self.mode_button_press(self.TestModeButton))
+            lambda: self.mode_button_press(self.TestModeButton))
 
         self.EnableButton.clicked.connect(
-            lambda _: self.enabled_button_press(self.EnableButton))
+            lambda: self.enabled_button_press(self.EnableButton))
         self.DisableButton.clicked.connect(
-            lambda _: self.enabled_button_press(self.DisableButton))
+            lambda: self.enabled_button_press(self.DisableButton))
 
     def setup_team_selector(self):
         """Setup the team selector spinbox"""
@@ -107,7 +116,7 @@ class PyDriverStation(Ui_MainWindow):
             int(self.config_parser['NetworkTables']['team_number']))
 
         self.UpdateTeamButton.clicked.connect(
-            lambda _: self.team_selector_update(
+            lambda: self.team_selector_update(
                 self.TeamNumberSelector.value())
         )
 
@@ -128,6 +137,17 @@ class PyDriverStation(Ui_MainWindow):
 
     def update(self):
         """Update driver station"""
+
+        # Set connection status, indicator color
+        #  Once status is updated, don't update again to avoid unecessary redraws
+        if NetworkTables.isConnected() and not self.connection_status:
+            self.connection_status = True
+            self.ConnectStatus.setStyleSheet(
+                "background-color: %s" % self.status_colors[self.connection_status].name())
+        elif not NetworkTables.isConnected() and self.connection_status:
+            self.connection_status = False
+            self.ConnectStatus.setStyleSheet(
+                "background-color:  %s" % self.status_colors[self.connection_status].name())
 
         # Set joystick data in NetworkTables
         self.joysticks.update()
