@@ -224,8 +224,7 @@ if __name__ == '__main__':
     try:
         SERVER_IP = sys.argv[1]
     except IndexError:
-        # No server ip provided, try localhost
-        SERVER_IP = '127.0.0.1'
+        SERVER_IP = None
 
     print("Connecting to: " + SERVER_IP)
 
