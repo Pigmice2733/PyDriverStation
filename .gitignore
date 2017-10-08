@@ -5,3 +5,6 @@ __pycache__/
 
 # Compiled Qt Designer ui files
 *ui.py
+
+# Config files
+*.cfg
