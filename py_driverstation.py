@@ -4,6 +4,7 @@ Python-based driver station. Currently only for
 """
 
 import sys
+import configparser
 
 from PyQt5.QtWidgets import QAction, QApplication, QMainWindow
 from PyQt5.QtCore import QTimer
@@ -19,28 +20,61 @@ class PyDriverStation(Ui_MainWindow):
     Python-based driver station to communicate with the Raspberry Pi
     """
 
-    def __init__(self, server_ip, qmain_window):
+    def __init__(self, qmain_window, server_ip=None):
         super(PyDriverStation, self).__init__()
 
         self.main_window = qmain_window
 
         self.setupUi(qmain_window)
 
-        NetworkTables.initialize(server_ip)
-        self.table = NetworkTables.getTable('driver_station')
+        self.config_file_name = 'ds_config.cfg'
+        self.init_config(self.config_file_name)
+
+        self.table_name = 'driver_station'
+        if server_ip:
+            NetworkTables.initialize(server_ip)
+        else:
+            NetworkTables.initialize(
+                self.config_parser['NetworkTables']['team_number'])
+        self.table = NetworkTables.getTable(self.table_name)
 
         self.joysticks = Joysticks()
 
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update)
-        self.timer.start(100)
-
+        # Set exit shortcut to 'Ctrl+Q'
         exit_act = QAction('Exit', self.main_window)
         exit_act.setShortcut('Ctrl+Q')
         exit_act.setStatusTip('Exit application')
         exit_act.triggered.connect(self.close_application)
         self.main_window.addAction(exit_act)
 
+        self.connect_buttons()
+        self.setup_team_selector()
+
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update)
+        self.timer.start(100)
+
+    def init_config(self, config_name):
+        """Read `config_name` into configparser.
+
+        Will create `config_file` if it doesn't already exist
+        """
+        self.config_parser = configparser.ConfigParser()
+        self.config_parser['DEFAULT'] = {'team_number': '2733'}
+
+        try:
+            self.config_parser.read_file(open(config_name))
+        except FileNotFoundError:
+            self.config_parser['NetworkTables'] = {'team_number': '2733'}
+            self.save_config(config_name)
+
+    def save_config(self, config_name):
+        """Save config into `config_name`"""
+        with open(config_name, 'w') as config_file:
+            self.config_parser.write(config_file)
+
+    def connect_buttons(self):
+        """Connect buttons to handler functions"""
         self.mode_buttons = [self.AutonomousModeButton,
                              self.TeleopModeButton, self.TestModeButton]
         self.mode_names = {
@@ -66,6 +100,16 @@ class PyDriverStation(Ui_MainWindow):
             lambda _: self.enabled_button_press(self.EnableButton))
         self.DisableButton.clicked.connect(
             lambda _: self.enabled_button_press(self.DisableButton))
+
+    def setup_team_selector(self):
+        """Setup the team selector spinbox"""
+        self.TeamNumberSelector.setValue(
+            int(self.config_parser['NetworkTables']['team_number']))
+
+        self.UpdateTeamButton.clicked.connect(
+            lambda _: self.team_selector_update(
+                self.TeamNumberSelector.value())
+        )
 
     def set_joystick_axis_value(self, joystick_number: int, axis_number: int, value: float):
         """Set a Networktable value. Set the joystick axis specified
@@ -123,6 +167,20 @@ class PyDriverStation(Ui_MainWindow):
             else:
                 button.setChecked(False)
 
+    def team_selector_update(self, new_team_number):
+        """Update team number button event handler
+
+        Updates team number with current value of team number spinbox,
+        connects NetworkTables to correct robot.
+        """
+        self.config_parser['NetworkTables']['team_number'] = str(
+            new_team_number)
+
+        NetworkTables.shutdown()
+        NetworkTables.setTeam(new_team_number)
+        NetworkTables.setClientMode()
+        NetworkTables.initialize()
+
     def set_game_mode(self, mode: str):
         """Set the current game mode in NetworkTables"""
         key = "/mode"
@@ -136,8 +194,9 @@ class PyDriverStation(Ui_MainWindow):
     def close_application(self):
         """Cleanup and close application"""
         self.timer.stop()
-        self.joysticks.quit()
         self.main_window.close()
+        self.joysticks.quit()
+        self.save_config(self.config_file_name)
         NetworkTables.shutdown()
 
 
@@ -152,7 +211,7 @@ if __name__ == '__main__':
 
     APP = QApplication(sys.argv)
     WINDOW = QMainWindow()
-    DS = PyDriverStation(SERVER_IP, WINDOW)
+    DS = PyDriverStation(WINDOW, SERVER_IP)
     WINDOW.show()
 
     try:
