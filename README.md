@@ -2,7 +2,7 @@
 This is a project to create a Python-based driver station for our Raspberry Pi minibots.
 
 ## Dependencies
-The driver station uses Qt as the GUI framework, this was chosen because it is a well maintained and documented cross-platform toolkit with bindings for Python. NetworkTables is used for commnuicaing with the robot over wifi, NetworkTables is used for compatibility reasons with RobotPy and WPILib. Pygame is used for interfacing with usb joystick controllers. `pynetworktables`, `pyqt5` and `pygame` are all needed to run the driver station, these can all be installed via `pip`. `pyqt5_tools` is also needed to build the UI files, and is also installable from pip.
+The driver station uses Qt as the GUI framework, this was chosen because it is a well maintained and documented cross-platform toolkit with bindings for Python. NetworkTables is used for communicating with the robot over wifi, NetworkTables is used for compatibility reasons with RobotPy and WPILib. Pygame is used for interfacing with usb joystick controllers. `pynetworktables`, `pyqt5` and `pygame` are all needed to run the driver station, these can all be installed via `pip`. `pyqt5_tools` is also needed to build the UI files, and is also installable from pip.
 
 ## Installing, building and running
 1. Clone this repository
