@@ -32,11 +32,12 @@ class PyDriverStation(Ui_MainWindow):
         self.init_config(self.config_file_name)
 
         self.table_name = 'driver_station'
-        if server_ip:
-            NetworkTables.initialize(server_ip)
+        if not server_ip:
+            server_ip = self.config_parser['NetworkTables']['team_number']
+            print("Connecting to robot: " + server_ip)
         else:
-            NetworkTables.initialize(
-                self.config_parser['NetworkTables']['team_number'])
+            print("Connecting to: " + server_ip)
+        NetworkTables.initialize(server_ip)
         self.table = NetworkTables.getTable(self.table_name)
 
         self.joysticks = Joysticks()
@@ -225,8 +226,6 @@ if __name__ == '__main__':
         SERVER_IP = sys.argv[1]
     except IndexError:
         SERVER_IP = None
-
-    print("Connecting to: " + SERVER_IP)
 
     APP = QApplication(sys.argv)
     WINDOW = QMainWindow()
