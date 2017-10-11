@@ -1,29 +1,38 @@
 """Joystick-related utilities"""
 
-import pygame
 
 class Joysticks:
     """Provides data about usb joysticks (and other
      controllers pygame recognizes as joysticks) via pygame
     """
-    def __init__(self):
-        pygame.init()
 
-        self._joysticks = [pygame.joystick.Joystick(x) for x in range(pygame.joystick.get_count())]
+    def __init__(self, pygame):
+        """Initialize joysticks"""
+
+        self._pygame = pygame
+
+        self._pygame.init()
+
+        self._scan_joysticks()
+
+    def _scan_joysticks(self):
+        # List of all joysticks plugged in (at time of initialization)
+        self._joysticks = [self._pygame.joystick.Joystick(
+            x) for x in range(self._pygame.joystick.get_count())]
         list(map(lambda joy: joy.init(), self._joysticks))
 
     def update(self):
         """Call periodically, preferably before a group of calls
          to `get_joystick`, this will flush the pygame event queue.
         """
-        pygame.event.get()
+        self._pygame.event.get()
 
     def get_num_joysticks(self) -> int:
         """Returns the number of USB joysticks plugged into computer.
 
-        Note - Hat sticks count as separate joysticks.
+        Note - Hat sticks (on most joysticks) will count as separate joysticks.
         """
-        return pygame.joystick.get_count()
+        return self._pygame.joystick.get_count()
 
     def get_joystick(self, stick: int) -> dict:
         """Returns dict holding state of specified joystick.
@@ -36,6 +45,7 @@ class Joysticks:
         `axes` holds the position of joystick `n` at index
          `n`, `buttons` does the same for the buttons.
         """
+
         joy_data = {"axes": [], "buttons": []}
 
         joystick = self._joysticks[stick]
@@ -54,4 +64,4 @@ class Joysticks:
 
     def quit(self):
         """Clean up and release resources"""
-        pygame.quit()
+        self._pygame.quit()

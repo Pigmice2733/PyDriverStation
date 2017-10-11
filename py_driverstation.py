@@ -10,6 +10,8 @@ from PyQt5.QtWidgets import QAction, QApplication, QMainWindow
 from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QColor
 
+import pygame
+
 from networktables import NetworkTables
 
 from joysticks import Joysticks
@@ -40,7 +42,7 @@ class PyDriverStation(Ui_MainWindow):
         NetworkTables.initialize(server_ip)
         self.table = NetworkTables.getTable(self.table_name)
 
-        self.joysticks = Joysticks()
+        self.joysticks = Joysticks(pygame)
 
         # Set exit shortcut to 'Ctrl+Q'
         exit_act = QAction('Exit', self.main_window)
