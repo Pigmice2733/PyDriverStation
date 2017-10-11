@@ -12,9 +12,10 @@ from PyQt5.QtGui import QColor
 
 import pygame
 
-from networktables import NetworkTables
+import networktables
 
 from joysticks import Joysticks
+from network import Network
 from driverstation_ui.driverstation_ui import Ui_MainWindow
 
 
@@ -33,14 +34,12 @@ class PyDriverStation(Ui_MainWindow):
         self.config_file_name = 'ds_config.cfg'
         self.init_config(self.config_file_name)
 
-        self.table_name = 'driver_station'
         if not server_ip:
             server_ip = self.config_parser['NetworkTables']['team_number']
             print("Connecting to robot: " + server_ip)
         else:
             print("Connecting to: " + server_ip)
-        NetworkTables.initialize(server_ip)
-        self.table = NetworkTables.getTable(self.table_name)
+        self.network = Network(networktables.NetworkTables, 'driver_station', server_ip)
 
         self.joysticks = Joysticks(pygame)
 
@@ -123,31 +122,16 @@ class PyDriverStation(Ui_MainWindow):
                 self.TeamNumberSelector.value())
         )
 
-    def set_joystick_axis_value(self, joystick_number: int, axis_number: int, value: float):
-        """Set a Networktable value. Set the joystick axis specified
-        by `joystick` and `axis` to `value`.
-        """
-        key = "/joystick-" + str(joystick_number) + "/axis-" + str(axis_number)
-        self.table.putNumber(key, value)
-
-    def set_joystick_button_value(self, joystick_number: int, button_number: int, value: bool):
-        """Set a Networktable value. Set the joystick button specified
-        by `joystick` and `button` to `value`.
-        """
-        key = "/joystick-" + str(joystick_number) + \
-            "/button-" + str(button_number)
-        self.table.putBoolean(key, value)
-
     def update(self):
         """Update driver station"""
 
         # Set connection status, indicator color
         #  Once status is updated, don't update again to avoid unecessary redraws
-        if NetworkTables.isConnected() and not self.connection_status:
+        if self.network.connected() and not self.connection_status:
             self.connection_status = True
             self.ConnectStatus.setStyleSheet(
                 "background-color: %s" % self.status_colors[self.connection_status].name())
-        elif not NetworkTables.isConnected() and self.connection_status:
+        elif not self.network.connected() and self.connection_status:
             self.connection_status = False
             self.ConnectStatus.setStyleSheet(
                 "background-color:  %s" % self.status_colors[self.connection_status].name())
@@ -159,10 +143,10 @@ class PyDriverStation(Ui_MainWindow):
             joy_data = self.joysticks.get_joystick(joystick_num)
 
             for index, value in enumerate(joy_data["axes"]):
-                self.set_joystick_axis_value(joystick_num, index, value)
+                self.network.set_joystick_axis_value(joystick_num, index, value)
 
             for index, value in enumerate(joy_data["buttons"]):
-                self.set_joystick_button_value(joystick_num, index, value)
+                self.network.set_joystick_button_value(joystick_num, index, value)
 
     def mode_button_press(self, pressed_button):
         """Event handler for mode button press
@@ -173,7 +157,7 @@ class PyDriverStation(Ui_MainWindow):
         for mode_button in self.mode_buttons:
             if mode_button == pressed_button:
                 mode_button.setChecked(True)
-                self.set_game_mode(self.mode_names[mode_button])
+                self.network.set_game_mode(self.mode_names[mode_button])
             else:
                 mode_button.setChecked(False)
 
@@ -186,7 +170,7 @@ class PyDriverStation(Ui_MainWindow):
         for button in self.enable_buttons:
             if button == pressed_button:
                 button.setChecked(True)
-                self.set_enabled(self.enable_buttons_status[button])
+                self.network.set_enabled(self.enable_buttons_status[button])
             else:
                 button.setChecked(False)
 
@@ -199,20 +183,7 @@ class PyDriverStation(Ui_MainWindow):
         self.config_parser['NetworkTables']['team_number'] = str(
             new_team_number)
 
-        NetworkTables.shutdown()
-        NetworkTables.setTeam(new_team_number)
-        NetworkTables.setClientMode()
-        NetworkTables.initialize()
-
-    def set_game_mode(self, mode: str):
-        """Set the current game mode in NetworkTables"""
-        key = "/mode"
-        self.table.putString(key, mode)
-
-    def set_enabled(self, enabled: bool):
-        """Set enabled status in NetworkTables"""
-        key = "/enabled"
-        self.table.putBoolean(key, enabled)
+        self.network.change_server(new_team_number)
 
     def close_application(self):
         """Cleanup and close application"""
@@ -220,7 +191,7 @@ class PyDriverStation(Ui_MainWindow):
         self.main_window.close()
         self.joysticks.quit()
         self.save_config(self.config_file_name)
-        NetworkTables.shutdown()
+        self.network.shutdown()
 
 
 if __name__ == '__main__':
