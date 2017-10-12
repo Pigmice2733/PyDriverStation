@@ -89,23 +89,15 @@ class PyDriverStation(Ui_MainWindow): # (Too many instance attributes) pylint: d
     """Python-based driver station to communicate with the Raspberry Pi
     """
 
-    def __init__(self, qmain_window, server_ip=None):
+    def __init__(self, qmain_window, network, config, joysticks):
         super(PyDriverStation, self).__init__()
 
         self.main_window = qmain_window
         self.setupUi(qmain_window)
 
-        self.config = DriverStationConfig('ds_config.cfg')
-
-        if not server_ip:
-            server_ip = self.config.team_number
-            print("Connecting to robot: " + server_ip)
-        else:
-            print("Connecting to: " + server_ip)
-        self.network = Network(networktables.NetworkTables,
-                               'driver_station', server_ip)
-
-        self.joysticks = Joysticks(pygame)
+        self.config = config
+        self.network = network
+        self.joysticks = joysticks
 
         # Set exit shortcut to 'Ctrl+Q'
         exit_act = QAction('Exit', self.main_window)
@@ -232,20 +224,36 @@ class PyDriverStation(Ui_MainWindow): # (Too many instance attributes) pylint: d
         self.network.shutdown()
 
 
+def main(server_ip):
+    """Main entry point for driver station"""
+    joysticks = Joysticks(pygame)
+    config = DriverStationConfig('ds_config.cfg')
+    network = Network(networktables.NetworkTables, 'driver_station', server_ip)
+
+    if not server_ip:
+        server_ip = config.team_number
+        print("Connecting to robot: " + server_ip)
+    else:
+        print("Connecting to: " + server_ip)
+
+    app = QApplication(sys.argv)
+    window = QMainWindow()
+
+    driver_station = PyDriverStation(window, network, config, joysticks)
+    window.show()
+
+    try:
+        return app.exec_()
+    except KeyboardInterrupt:
+        driver_station.close_application()
+        print("\n\nExiting...\n\n")
+        return 0
+
+
 if __name__ == '__main__':
     try:
         SERVER_IP = sys.argv[1]
     except IndexError:
         SERVER_IP = None
 
-    APP = QApplication(sys.argv)
-    WINDOW = QMainWindow()
-    DS = PyDriverStation(WINDOW, SERVER_IP)
-    WINDOW.show()
-
-    try:
-        sys.exit(APP.exec_())
-    except KeyboardInterrupt:
-        DS.close_application()
-        print("\n\nExiting...\n\n")
-        sys.exit(0)
+    sys.exit(main(SERVER_IP))
