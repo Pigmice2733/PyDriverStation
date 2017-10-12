@@ -6,12 +6,14 @@ Python-based driver station. Currently only for
 import sys
 import configparser
 
+# No name ... in module ... - pylint seems to have trouble with PyQt
+# pylint: disable=E0611
 from PyQt5.QtWidgets import QAction, QApplication, QMainWindow
 from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QColor
+# pylint: enable=E0611
 
 import pygame
-
 import networktables
 
 from joysticks import Joysticks
@@ -19,27 +21,89 @@ from network import Network
 from driverstation_ui.driverstation_ui import Ui_MainWindow
 
 
-class PyDriverStation(Ui_MainWindow):
-    """
-    Python-based driver station to communicate with the Raspberry Pi
+class DriverStationConfig:
+    """Driver station config"""
+
+    def __init__(self, config_file_name):
+        """Initialize config using `config_file_name` as source file
+
+        Will create `config_file_name` if it doesn't already exist
+        """
+
+        self.config_file_name = config_file_name
+        self.config_parser = configparser.ConfigParser()
+        self.config_parser['DEFAULT'] = {'team_number': '2733'}
+
+        try:
+            self.config_parser.read_file(open(config_file_name))
+        except FileNotFoundError:
+            self.config_parser['NetworkTables'] = {'team_number': '2733'}
+            self.save_config()
+
+    @property
+    def team_number(self) -> int:
+        """Get the team number from the config"""
+        return int(self.config_parser['NetworkTables']['team_number'])
+
+    @team_number.setter
+    def team_number(self, new_team_number: int):
+        """Set the team number in the config"""
+        self.config_parser['NetworkTables']['team_number'] = new_team_number
+
+    def save_config(self):
+        """Save config into `config_file_name`"""
+        with open(self.config_file_name, 'w') as config_file:
+            self.config_parser.write(config_file)
+
+
+class StatusIndicator:  # (Too few public methods) pylint: disable=R0903
+    """Controller for status indicator"""
+
+    def __init__(self, indicator_widget, status_colors):
+        self.widget = indicator_widget
+        self.status_colors = status_colors
+
+        self.status = False
+        self.widget.setStyleSheet(
+            "background-color: %s" % self.status_colors[self.status].name())
+
+    def update(self, new_status):
+        """Update status indicator with new status
+
+        Indicator widget color will be updated
+         to correspond with new status
+        """
+        # Set status indicator color
+        # Once status is updated, don't update again to avoid unecessary redraws
+        if new_status and not self.status:
+            self.status = True
+            self.widget.setStyleSheet(
+                "background-color: %s" % self.status_colors[self.status].name())
+        elif not new_status and self.status:
+            self.status = False
+            self.widget.setStyleSheet(
+                "background-color:  %s" % self.status_colors[self.status].name())
+
+
+class PyDriverStation(Ui_MainWindow): # (Too many instance attributes) pylint: disable=R0902
+    """Python-based driver station to communicate with the Raspberry Pi
     """
 
     def __init__(self, qmain_window, server_ip=None):
         super(PyDriverStation, self).__init__()
 
         self.main_window = qmain_window
-
         self.setupUi(qmain_window)
 
-        self.config_file_name = 'ds_config.cfg'
-        self.init_config(self.config_file_name)
+        self.config = DriverStationConfig('ds_config.cfg')
 
         if not server_ip:
-            server_ip = self.config_parser['NetworkTables']['team_number']
+            server_ip = self.config.team_number
             print("Connecting to robot: " + server_ip)
         else:
             print("Connecting to: " + server_ip)
-        self.network = Network(networktables.NetworkTables, 'driver_station', server_ip)
+        self.network = Network(networktables.NetworkTables,
+                               'driver_station', server_ip)
 
         self.joysticks = Joysticks(pygame)
 
@@ -53,52 +117,32 @@ class PyDriverStation(Ui_MainWindow):
         self.connect_buttons()
         self.setup_team_selector()
 
-        self.status_colors = {
-            False: QColor(200, 0, 0),
-            True: QColor(0, 180, 0)
-        }
-        self.connection_status = False
-        self.ConnectStatus.setStyleSheet(
-            "background-color: %s" % self.status_colors[self.connection_status].name())
+        status_colors = {True: QColor(0, 180, 0), False: QColor(200, 0, 0)}
+        self.connection_indicator = StatusIndicator(
+            self.ConnectStatus, status_colors)
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.update)
         self.timer.start(100)
 
-    def init_config(self, config_name):
-        """Read `config_name` into configparser.
-
-        Will create `config_file` if it doesn't already exist
-        """
-        self.config_parser = configparser.ConfigParser()
-        self.config_parser['DEFAULT'] = {'team_number': '2733'}
-
-        try:
-            self.config_parser.read_file(open(config_name))
-        except FileNotFoundError:
-            self.config_parser['NetworkTables'] = {'team_number': '2733'}
-            self.save_config(config_name)
-
-    def save_config(self, config_name):
-        """Save config into `config_name`"""
-        with open(config_name, 'w') as config_file:
-            self.config_parser.write(config_file)
-
     def connect_buttons(self):
         """Connect buttons to handler functions"""
-        self.mode_buttons = [self.AutonomousModeButton,
-                             self.TeleopModeButton, self.TestModeButton]
+
+        # Mapping between mode buttons and mode string to put in NetworkTables
         self.mode_names = {
             self.AutonomousModeButton: "autonomous",
             self.TeleopModeButton: "teleop",
             self.TestModeButton: "test"
         }
+        self.mode_buttons = [self.AutonomousModeButton,
+                             self.TeleopModeButton, self.TestModeButton]
 
-        self.enable_buttons = [self.EnableButton, self.DisableButton]
+        # Mapping between button and enabled(True)/disabled(False)
         self.enable_buttons_status = {
             self.EnableButton: True,
             self.DisableButton: False
         }
+        self.enable_buttons = [self.EnableButton, self.DisableButton]
 
         self.AutonomousModeButton.clicked.connect(
             lambda: self.mode_button_press(self.AutonomousModeButton))
@@ -115,7 +159,7 @@ class PyDriverStation(Ui_MainWindow):
     def setup_team_selector(self):
         """Setup the team selector spinbox"""
         self.TeamNumberSelector.setValue(
-            int(self.config_parser['NetworkTables']['team_number']))
+            self.config.team_number)
 
         self.UpdateTeamButton.clicked.connect(
             lambda: self.team_selector_update(
@@ -125,16 +169,8 @@ class PyDriverStation(Ui_MainWindow):
     def update(self):
         """Update driver station"""
 
-        # Set connection status, indicator color
-        #  Once status is updated, don't update again to avoid unecessary redraws
-        if self.network.connected() and not self.connection_status:
-            self.connection_status = True
-            self.ConnectStatus.setStyleSheet(
-                "background-color: %s" % self.status_colors[self.connection_status].name())
-        elif not self.network.connected() and self.connection_status:
-            self.connection_status = False
-            self.ConnectStatus.setStyleSheet(
-                "background-color:  %s" % self.status_colors[self.connection_status].name())
+        # Update connection indicator
+        self.connection_indicator.update(self.network.connected())
 
         # Set joystick data in NetworkTables
         self.joysticks.update()
@@ -143,10 +179,12 @@ class PyDriverStation(Ui_MainWindow):
             joy_data = self.joysticks.get_joystick(joystick_num)
 
             for index, value in enumerate(joy_data["axes"]):
-                self.network.set_joystick_axis_value(joystick_num, index, value)
+                self.network.set_joystick_axis_value(
+                    joystick_num, index, value)
 
             for index, value in enumerate(joy_data["buttons"]):
-                self.network.set_joystick_button_value(joystick_num, index, value)
+                self.network.set_joystick_button_value(
+                    joystick_num, index, value)
 
     def mode_button_press(self, pressed_button):
         """Event handler for mode button press
@@ -180,7 +218,7 @@ class PyDriverStation(Ui_MainWindow):
         Updates team number with current value of team number spinbox,
         connects NetworkTables to correct robot.
         """
-        self.config_parser['NetworkTables']['team_number'] = str(
+        self.config.team_number = str(
             new_team_number)
 
         self.network.change_server(new_team_number)
@@ -190,7 +228,7 @@ class PyDriverStation(Ui_MainWindow):
         self.timer.stop()
         self.main_window.close()
         self.joysticks.quit()
-        self.save_config(self.config_file_name)
+        self.config.save_config()
         self.network.shutdown()
 
 
