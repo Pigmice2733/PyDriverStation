@@ -17,9 +17,9 @@ class Joysticks:
 
     def _scan_joysticks(self):
         # List of all joysticks plugged in (at time of initialization)
-        self._joysticks = [self._pygame.joystick.Joystick(
-            x) for x in range(self._pygame.joystick.get_count())]
-        list(map(lambda joy: joy.init(), self._joysticks))
+        self._joysticks = [self._pygame.joystick.Joystick(x)
+                           for x in range(self._pygame.joystick.get_count())]
+        [joy.init() for joy in self._joysticks]
 
     def update(self):
         """Call periodically, preferably before a group of calls
