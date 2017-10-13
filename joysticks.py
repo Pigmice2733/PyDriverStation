@@ -38,13 +38,16 @@ class Joysticks:
         """Returns dict holding state of specified joystick.
 
         `joy_data = {
-            axes: [0.0, 0.0, 0.0],
-            buttons: [0, 1, 0]
+            'axes': [0.0, 0.0, 0.0],
+            'buttons': [0, 1, 0]
         }`
 
-        `axes` holds the position of joystick `n` at index
-         `n`, `buttons` does the same for the buttons.
+        `'axes'` holds the position of joystick `n` at index
+         `n`, `'buttons'` does the same for the buttons.
         """
+
+        if stick >= len(self._joysticks) or stick < 0:
+            raise ValueError("get_joystick called with invalid stick number: " + str(stick))
 
         joy_data = {"axes": [], "buttons": []}
 
