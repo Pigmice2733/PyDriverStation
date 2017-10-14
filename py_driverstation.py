@@ -6,41 +6,98 @@ Python-based driver station. Currently only for
 import sys
 import configparser
 
+# No name ... in module ... - pylint seems to have trouble with PyQt
+# pylint: disable=E0611
 from PyQt5.QtWidgets import QAction, QApplication, QMainWindow
 from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QColor
+# pylint: enable=E0611
 
-from networktables import NetworkTables
+import pygame
+import networktables
 
 from joysticks import Joysticks
+from network import Network
 from driverstation_ui.driverstation_ui import Ui_MainWindow
 
 
-class PyDriverStation(Ui_MainWindow):
-    """
-    Python-based driver station to communicate with the Raspberry Pi
+class DriverStationConfig:
+    """Driver station config"""
+
+    def __init__(self, config_file_name):
+        """Initialize config using `config_file_name` as source file
+
+        Will create `config_file_name` if it doesn't already exist
+        """
+
+        self.config_file_name = config_file_name
+        self.config_parser = configparser.ConfigParser()
+        self.config_parser['DEFAULT'] = {'team_number': '2733'}
+
+        try:
+            self.config_parser.read_file(open(config_file_name))
+        except FileNotFoundError:
+            self.config_parser['NetworkTables'] = {'team_number': '2733'}
+            self.save_config()
+
+    @property
+    def team_number(self) -> int:
+        """Get the team number from the config"""
+        return int(self.config_parser['NetworkTables']['team_number'])
+
+    @team_number.setter
+    def team_number(self, new_team_number: int):
+        """Set the team number in the config"""
+        self.config_parser['NetworkTables']['team_number'] = new_team_number
+
+    def save_config(self):
+        """Save config into `config_file_name`"""
+        with open(self.config_file_name, 'w') as config_file:
+            self.config_parser.write(config_file)
+
+
+class StatusIndicator:  # (Too few public methods) pylint: disable=R0903
+    """Controller for status indicator"""
+
+    def __init__(self, indicator_widget, status_colors):
+        self.widget = indicator_widget
+        self.status_colors = status_colors
+
+        self.status = False
+        self.widget.setStyleSheet(
+            "background-color: %s" % self.status_colors[self.status].name())
+
+    def update(self, new_status):
+        """Update status indicator with new status
+
+        Indicator widget color will be updated
+         to correspond with new status
+        """
+        # Set status indicator color
+        # Once status is updated, don't update again to avoid unecessary redraws
+        if new_status and not self.status:
+            self.status = True
+            self.widget.setStyleSheet(
+                "background-color: %s" % self.status_colors[self.status].name())
+        elif not new_status and self.status:
+            self.status = False
+            self.widget.setStyleSheet(
+                "background-color:  %s" % self.status_colors[self.status].name())
+
+
+class PyDriverStation(Ui_MainWindow): # (Too many instance attributes) pylint: disable=R0902
+    """Python-based driver station to communicate with the Raspberry Pi
     """
 
-    def __init__(self, qmain_window, server_ip=None):
+    def __init__(self, qmain_window, network, config, joysticks):
         super(PyDriverStation, self).__init__()
 
         self.main_window = qmain_window
-
         self.setupUi(qmain_window)
 
-        self.config_file_name = 'ds_config.cfg'
-        self.init_config(self.config_file_name)
-
-        self.table_name = 'driver_station'
-        if not server_ip:
-            server_ip = self.config_parser['NetworkTables']['team_number']
-            print("Connecting to robot: " + server_ip)
-        else:
-            print("Connecting to: " + server_ip)
-        NetworkTables.initialize(server_ip)
-        self.table = NetworkTables.getTable(self.table_name)
-
-        self.joysticks = Joysticks()
+        self.config = config
+        self.network = network
+        self.joysticks = joysticks
 
         # Set exit shortcut to 'Ctrl+Q'
         exit_act = QAction('Exit', self.main_window)
@@ -52,52 +109,32 @@ class PyDriverStation(Ui_MainWindow):
         self.connect_buttons()
         self.setup_team_selector()
 
-        self.status_colors = {
-            False: QColor(200, 0, 0),
-            True: QColor(0, 180, 0)
-        }
-        self.connection_status = False
-        self.ConnectStatus.setStyleSheet(
-            "background-color: %s" % self.status_colors[self.connection_status].name())
+        status_colors = {True: QColor(0, 180, 0), False: QColor(200, 0, 0)}
+        self.connection_indicator = StatusIndicator(
+            self.ConnectStatus, status_colors)
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.update)
         self.timer.start(100)
 
-    def init_config(self, config_name):
-        """Read `config_name` into configparser.
-
-        Will create `config_file` if it doesn't already exist
-        """
-        self.config_parser = configparser.ConfigParser()
-        self.config_parser['DEFAULT'] = {'team_number': '2733'}
-
-        try:
-            self.config_parser.read_file(open(config_name))
-        except FileNotFoundError:
-            self.config_parser['NetworkTables'] = {'team_number': '2733'}
-            self.save_config(config_name)
-
-    def save_config(self, config_name):
-        """Save config into `config_name`"""
-        with open(config_name, 'w') as config_file:
-            self.config_parser.write(config_file)
-
     def connect_buttons(self):
         """Connect buttons to handler functions"""
-        self.mode_buttons = [self.AutonomousModeButton,
-                             self.TeleopModeButton, self.TestModeButton]
+
+        # Mapping between mode buttons and mode string to put in NetworkTables
         self.mode_names = {
             self.AutonomousModeButton: "autonomous",
             self.TeleopModeButton: "teleop",
             self.TestModeButton: "test"
         }
+        self.mode_buttons = [self.AutonomousModeButton,
+                             self.TeleopModeButton, self.TestModeButton]
 
-        self.enable_buttons = [self.EnableButton, self.DisableButton]
+        # Mapping between button and enabled(True)/disabled(False)
         self.enable_buttons_status = {
             self.EnableButton: True,
             self.DisableButton: False
         }
+        self.enable_buttons = [self.EnableButton, self.DisableButton]
 
         self.AutonomousModeButton.clicked.connect(
             lambda: self.mode_button_press(self.AutonomousModeButton))
@@ -114,41 +151,18 @@ class PyDriverStation(Ui_MainWindow):
     def setup_team_selector(self):
         """Setup the team selector spinbox"""
         self.TeamNumberSelector.setValue(
-            int(self.config_parser['NetworkTables']['team_number']))
+            self.config.team_number)
 
         self.UpdateTeamButton.clicked.connect(
             lambda: self.team_selector_update(
                 self.TeamNumberSelector.value())
         )
 
-    def set_joystick_axis_value(self, joystick_number: int, axis_number: int, value: float):
-        """Set a Networktable value. Set the joystick axis specified
-        by `joystick` and `axis` to `value`.
-        """
-        key = "/joystick-" + str(joystick_number) + "/axis-" + str(axis_number)
-        self.table.putNumber(key, value)
-
-    def set_joystick_button_value(self, joystick_number: int, button_number: int, value: bool):
-        """Set a Networktable value. Set the joystick button specified
-        by `joystick` and `button` to `value`.
-        """
-        key = "/joystick-" + str(joystick_number) + \
-            "/button-" + str(button_number)
-        self.table.putBoolean(key, value)
-
     def update(self):
         """Update driver station"""
 
-        # Set connection status, indicator color
-        #  Once status is updated, don't update again to avoid unecessary redraws
-        if NetworkTables.isConnected() and not self.connection_status:
-            self.connection_status = True
-            self.ConnectStatus.setStyleSheet(
-                "background-color: %s" % self.status_colors[self.connection_status].name())
-        elif not NetworkTables.isConnected() and self.connection_status:
-            self.connection_status = False
-            self.ConnectStatus.setStyleSheet(
-                "background-color:  %s" % self.status_colors[self.connection_status].name())
+        # Update connection indicator
+        self.connection_indicator.update(self.network.connected())
 
         # Set joystick data in NetworkTables
         self.joysticks.update()
@@ -157,10 +171,12 @@ class PyDriverStation(Ui_MainWindow):
             joy_data = self.joysticks.get_joystick(joystick_num)
 
             for index, value in enumerate(joy_data["axes"]):
-                self.set_joystick_axis_value(joystick_num, index, value)
+                self.network.set_joystick_axis_value(
+                    joystick_num, index, value)
 
             for index, value in enumerate(joy_data["buttons"]):
-                self.set_joystick_button_value(joystick_num, index, value)
+                self.network.set_joystick_button_value(
+                    joystick_num, index, value)
 
     def mode_button_press(self, pressed_button):
         """Event handler for mode button press
@@ -171,7 +187,7 @@ class PyDriverStation(Ui_MainWindow):
         for mode_button in self.mode_buttons:
             if mode_button == pressed_button:
                 mode_button.setChecked(True)
-                self.set_game_mode(self.mode_names[mode_button])
+                self.network.set_game_mode(self.mode_names[mode_button])
             else:
                 mode_button.setChecked(False)
 
@@ -184,7 +200,7 @@ class PyDriverStation(Ui_MainWindow):
         for button in self.enable_buttons:
             if button == pressed_button:
                 button.setChecked(True)
-                self.set_enabled(self.enable_buttons_status[button])
+                self.network.set_enabled(self.enable_buttons_status[button])
             else:
                 button.setChecked(False)
 
@@ -194,31 +210,44 @@ class PyDriverStation(Ui_MainWindow):
         Updates team number with current value of team number spinbox,
         connects NetworkTables to correct robot.
         """
-        self.config_parser['NetworkTables']['team_number'] = str(
+        self.config.team_number = str(
             new_team_number)
 
-        NetworkTables.shutdown()
-        NetworkTables.setTeam(new_team_number)
-        NetworkTables.setClientMode()
-        NetworkTables.initialize()
-
-    def set_game_mode(self, mode: str):
-        """Set the current game mode in NetworkTables"""
-        key = "/mode"
-        self.table.putString(key, mode)
-
-    def set_enabled(self, enabled: bool):
-        """Set enabled status in NetworkTables"""
-        key = "/enabled"
-        self.table.putBoolean(key, enabled)
+        self.network.change_server(new_team_number)
 
     def close_application(self):
         """Cleanup and close application"""
         self.timer.stop()
         self.main_window.close()
         self.joysticks.quit()
-        self.save_config(self.config_file_name)
-        NetworkTables.shutdown()
+        self.config.save_config()
+        self.network.shutdown()
+
+
+def main(server_ip):
+    """Main entry point for driver station"""
+    joysticks = Joysticks(pygame)
+    config = DriverStationConfig('ds_config.cfg')
+    network = Network(networktables.NetworkTables, 'driver_station', server_ip)
+
+    if not server_ip:
+        server_ip = config.team_number
+        print("Connecting to robot: " + server_ip)
+    else:
+        print("Connecting to: " + server_ip)
+
+    app = QApplication(sys.argv)
+    window = QMainWindow()
+
+    driver_station = PyDriverStation(window, network, config, joysticks)
+    window.show()
+
+    try:
+        return app.exec_()
+    except KeyboardInterrupt:
+        driver_station.close_application()
+        print("\n\nExiting...\n\n")
+        return 0
 
 
 if __name__ == '__main__':
@@ -227,14 +256,4 @@ if __name__ == '__main__':
     except IndexError:
         SERVER_IP = None
 
-    APP = QApplication(sys.argv)
-    WINDOW = QMainWindow()
-    DS = PyDriverStation(WINDOW, SERVER_IP)
-    WINDOW.show()
-
-    try:
-        sys.exit(APP.exec_())
-    except KeyboardInterrupt:
-        DS.close_application()
-        print("\n\nExiting...\n\n")
-        sys.exit(0)
+    sys.exit(main(SERVER_IP))
