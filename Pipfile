@@ -8,7 +8,5 @@ name = "pypi"
 "pyqt5" = "*"
 pygame = "*"
 pynetworktables = "*"
-"pyqt5-tools" = "*"
-
 
 [dev-packages]
