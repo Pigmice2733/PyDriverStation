@@ -8,8 +8,8 @@ import configparser
 
 # No name ... in module ... - pylint seems to have trouble with PyQt
 # pylint: disable=E0611
-from PyQt5.QtWidgets import QAction, QApplication, QMainWindow
-from PyQt5.QtCore import QTimer
+from PyQt5.QtWidgets import QAction, QApplication, QMainWindow, QStyle
+from PyQt5.QtCore import QTimer, QRect, QPoint, QSize, Qt
 from PyQt5.QtGui import QColor
 # pylint: enable=E0611
 
@@ -85,7 +85,8 @@ class StatusIndicator:  # (Too few public methods) pylint: disable=R0903
                 "background-color:  %s" % self.status_colors[self.status].name())
 
 
-class PyDriverStation(Ui_MainWindow): # (Too many instance attributes) pylint: disable=R0902
+# (Too many instance attributes) pylint: disable=R0902
+class PyDriverStation(Ui_MainWindow):
     """Python-based driver station to communicate with the Raspberry Pi
     """
 
@@ -93,7 +94,8 @@ class PyDriverStation(Ui_MainWindow): # (Too many instance attributes) pylint: d
         super(PyDriverStation, self).__init__()
 
         self.main_window = qmain_window
-        self.setupUi(qmain_window)
+        self.setupUi(self.main_window)
+        self.scale_window()
 
         self.config = config
         self.network = network
@@ -116,6 +118,20 @@ class PyDriverStation(Ui_MainWindow): # (Too many instance attributes) pylint: d
         self.timer = QTimer()
         self.timer.timeout.connect(self.update)
         self.timer.start(100)
+
+    def scale_window(self):
+        """Resize and move the window to handle different dpi screens"""
+        available_geometry = QApplication.desktop().availableGeometry()
+
+        scaled_height = available_geometry.height() * 0.35
+        scaled_width = available_geometry.width() * 0.5
+
+        scaled_geometry = QRect(
+            (available_geometry.width() - scaled_width) / 2,
+            (available_geometry.height() - scaled_height) / 2,
+            scaled_width, scaled_height)
+
+        self.main_window.setGeometry(scaled_geometry)
 
     def connect_buttons(self):
         """Connect buttons to handler functions"""
@@ -238,7 +254,6 @@ def main(server_ip):
 
     app = QApplication(sys.argv)
     window = QMainWindow()
-
     driver_station = PyDriverStation(window, network, config, joysticks)
     window.show()
 
