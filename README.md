@@ -21,3 +21,5 @@ pyuic5 .\driverstation_ui\driverstation_ui.ui -o .\driverstation_ui\driverstatio
 to do this. The UI must be rebuilt every time it changes. You may have to activate the `pipenv` shell before this will work.
 
 To run, first activate the shell. Then use `python .\py_driverstation.py` to launch the driver station.
+
+**Note:** For now, the driver station must be started with `python .\py_driverstation.py <remote-ip>`, where `remote-ip` is the ip of the robot you wish to connect to. For testing on the same computer, use `localhost`.
