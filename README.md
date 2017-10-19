@@ -22,4 +22,4 @@ to do this. The UI must be rebuilt every time it changes. You may have to activa
 
 To run, first activate the shell. Then use `python .\py_driverstation.py` to launch the driver station.
 
-**Note:** For now, the driver station must be started with `python .\py_driverstation.py <remote-ip>`, where `remote-ip` is the ip of the robot you wish to connect to. For testing on the same computer, use `localhost`.
+**Note:** You can supply an IP address to connect to, ex. `python .\py_driverstation.py localhost`.

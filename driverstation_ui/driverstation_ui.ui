@@ -198,7 +198,7 @@
        </spacer>
       </item>
       <item>
-       <layout class="QVBoxLayout" name="VConnectionStatusBox" stretch="4,3,4">
+       <layout class="QVBoxLayout" name="VConnectionStatusBox" stretch="2,1,2">
         <property name="spacing">
          <number>0</number>
         </property>
@@ -299,7 +299,7 @@
      </layout>
     </item>
     <item row="1" column="0">
-     <layout class="QHBoxLayout" name="BottomDisplayBar" stretch="2,3,2">
+     <layout class="QHBoxLayout" name="BottomDisplayBar" stretch="2,2,3">
       <property name="spacing">
        <number>0</number>
       </property>
@@ -401,7 +401,7 @@
        </spacer>
       </item>
       <item>
-       <layout class="QVBoxLayout" name="TeamNumber" stretch="2,1">
+       <layout class="QVBoxLayout" name="RobotIP" stretch="0,0">
         <property name="spacing">
          <number>0</number>
         </property>
@@ -409,12 +409,12 @@
          <enum>QLayout::SetDefaultConstraint</enum>
         </property>
         <item>
-         <layout class="QHBoxLayout" name="TeamNumberSelect" stretch="2,1">
+         <layout class="QHBoxLayout" name="RobotIp" stretch="1,2">
           <property name="spacing">
            <number>0</number>
           </property>
           <item>
-           <widget class="QLabel" name="TeamNumberLabel">
+           <widget class="QLabel" name="IPLabel">
             <property name="sizePolicy">
              <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
               <horstretch>0</horstretch>
@@ -423,7 +423,7 @@
             </property>
             <property name="minimumSize">
              <size>
-              <width>350</width>
+              <width>120</width>
               <height>60</height>
              </size>
             </property>
@@ -447,7 +447,7 @@
 </string>
             </property>
             <property name="text">
-             <string>Robot Number: </string>
+             <string>Robot IP:</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -455,51 +455,39 @@
            </widget>
           </item>
           <item>
-           <widget class="QSpinBox" name="TeamNumberSelector">
+           <widget class="QLineEdit" name="InputIP">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
+             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
-            <property name="minimumSize">
-             <size>
-              <width>100</width>
-              <height>60</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>233</width>
-              <height>154</height>
-             </size>
-            </property>
             <property name="font">
              <font>
               <family>Calibri</family>
-              <pointsize>16</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="styleSheet">
-             <string notr="true">background: slategray</string>
+             <string notr="true">background: darkgray</string>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+            <property name="frame">
+             <bool>true</bool>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
-            </property>
-            <property name="maximum">
-             <number>20</number>
-            </property>
-            <property name="value">
-             <number>20</number>
             </property>
            </widget>
           </item>
          </layout>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="TeamNumberConfirmation">
+         <layout class="QHBoxLayout" name="RobotIPConfirmation">
           <item>
-           <widget class="QPushButton" name="UpdateTeamButton">
+           <widget class="QPushButton" name="UpdateIPButton">
             <property name="sizePolicy">
              <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
               <horstretch>0</horstretch>
@@ -508,7 +496,7 @@
             </property>
             <property name="maximumSize">
              <size>
-              <width>698</width>
+              <width>1000</width>
               <height>76</height>
              </size>
             </property>
@@ -522,7 +510,7 @@
              <string notr="true">background: dimgray</string>
             </property>
             <property name="text">
-             <string>Update Robot Number</string>
+             <string>Update Robot IP</string>
             </property>
            </widget>
           </item>
