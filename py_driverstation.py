@@ -32,23 +32,23 @@ class DriverStationConfig:
 
         self.config_file_name = config_file_name
         self.config_parser = configparser.ConfigParser()
-        self.config_parser['DEFAULT'] = {'team_number': '2733'}
+        self.config_parser['DEFAULT'] = {'remote_ip': 'localhost'}
 
         try:
             self.config_parser.read_file(open(config_file_name))
         except FileNotFoundError:
-            self.config_parser['NetworkTables'] = {'team_number': '2733'}
+            self.config_parser['NetworkTables'] = {'remote_ip': 'localhost'}
             self.save_config()
 
     @property
-    def team_number(self) -> int:
-        """Get the team number from the config"""
-        return int(self.config_parser['NetworkTables']['team_number'])
+    def remote_ip(self) -> str:
+        """Get the remote robot ip from the config"""
+        return self.config_parser['NetworkTables']['remote_ip']
 
-    @team_number.setter
-    def team_number(self, new_team_number: int):
-        """Set the team number in the config"""
-        self.config_parser['NetworkTables']['team_number'] = new_team_number
+    @remote_ip.setter
+    def remote_ip(self, new_ip: str):
+        """Set the remote robot ip in the config"""
+        self.config_parser['NetworkTables']['remote_ip'] = new_ip
 
     def save_config(self):
         """Save config into `config_file_name`"""
@@ -109,7 +109,7 @@ class PyDriverStation(Ui_MainWindow):
         self.main_window.addAction(exit_act)
 
         self.connect_buttons()
-        self.setup_team_selector()
+        self.setup_remote_ip_selector()
 
         status_colors = {True: QColor(0, 180, 0), False: QColor(200, 0, 0)}
         self.connection_indicator = StatusIndicator(
@@ -164,14 +164,14 @@ class PyDriverStation(Ui_MainWindow):
         self.DisableButton.clicked.connect(
             lambda: self.enabled_button_press(self.DisableButton))
 
-    def setup_team_selector(self):
-        """Setup the team selector spinbox"""
-        self.TeamNumberSelector.setValue(
-            self.config.team_number)
+    def setup_remote_ip_selector(self):
+        """Setup the remote ip selector input box"""
+        self.InputIP.setText(
+            self.config.remote_ip)
 
-        self.UpdateTeamButton.clicked.connect(
-            lambda: self.team_selector_update(
-                self.TeamNumberSelector.value())
+        self.UpdateIPButton.clicked.connect(
+            lambda: self.ip_input_update(
+                self.InputIP.text())
         )
 
     def update(self):
@@ -220,16 +220,15 @@ class PyDriverStation(Ui_MainWindow):
             else:
                 button.setChecked(False)
 
-    def team_selector_update(self, new_team_number):
-        """Update team number button event handler
+    def ip_input_update(self, new_ip):
+        """Update robot ip input event handler
 
-        Updates team number with current value of team number spinbox,
+        Updates remote robot ip with current value of ip input box,
         connects NetworkTables to correct robot.
         """
-        self.config.team_number = str(
-            new_team_number)
+        self.config.remote_ip = new_ip
 
-        self.network.change_server(new_team_number)
+        self.network.change_server(new_ip)
 
     def close_application(self):
         """Cleanup and close application"""
@@ -242,15 +241,14 @@ class PyDriverStation(Ui_MainWindow):
 
 def main(server_ip):
     """Main entry point for driver station"""
-    joysticks = Joysticks(pygame)
     config = DriverStationConfig('ds_config.cfg')
-    network = Network(networktables.NetworkTables, 'driver_station', server_ip)
 
     if not server_ip:
-        server_ip = config.team_number
-        print("Connecting to robot: " + server_ip)
-    else:
-        print("Connecting to: " + server_ip)
+        server_ip = config.remote_ip
+    print("Connecting to: " + server_ip)
+
+    joysticks = Joysticks(pygame)
+    network = Network(networktables.NetworkTables, 'driver_station', server_ip)
 
     app = QApplication(sys.argv)
     window = QMainWindow()
