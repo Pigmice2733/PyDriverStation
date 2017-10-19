@@ -1,20 +1,20 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "d97c88bf85e82774322dde96c8600455812ec5b8d940e9dcf78a7450f49e4dc5"
+            "sha256": "70a6b2df273806d01b52580c916ba3e7b895c1132dd45bda31a989d36c7373aa"
         },
         "host-environment-markers": {
             "implementation_name": "cpython",
-            "implementation_version": "3.6.1",
-            "os_name": "nt",
-            "platform_machine": "AMD64",
+            "implementation_version": "3.6.2",
+            "os_name": "posix",
+            "platform_machine": "x86_64",
             "platform_python_implementation": "CPython",
-            "platform_release": "10",
-            "platform_system": "Windows",
-            "platform_version": "10.0.15063",
-            "python_full_version": "3.6.1",
+            "platform_release": "4.13.5-1-ARCH",
+            "platform_system": "Linux",
+            "platform_version": "#1 SMP PREEMPT Fri Oct 6 09:58:47 CEST 2017",
+            "python_full_version": "3.6.2",
             "python_version": "3.6",
-            "sys_platform": "win32"
+            "sys_platform": "linux"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -65,15 +65,6 @@
                 "sha256:5c65de13b616773d4185db66e1132b2cf6ca901d63672e1958c09d056c2af07a"
             ],
             "version": "==5.9"
-        },
-        "pyqt5-tools": {
-            "hashes": [
-                "sha256:bc05fdb8b9879cfc6b20678414461b7cae24d90a6a8e930ebefde37f92b9e95b",
-                "sha256:226cc0765355ebd6938a13526fe553bc0da6a1b1f7db503d4dd2953b0bd765c3",
-                "sha256:3ee2a6842e4d0445f7676a42f336d97440aa7e94ca6d003aae8d0b96f0d1a17d",
-                "sha256:c18cc5a889f6bb9516bb3235a9024f19ab7f5be86f2e0c075ec3eb69431d3f3b"
-            ],
-            "version": "==5.9.0.1.2"
         },
         "sip": {
             "hashes": [
