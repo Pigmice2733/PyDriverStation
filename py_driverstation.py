@@ -78,12 +78,16 @@ class StatusIndicator:  # (Too few public methods) pylint: disable=R0903
         #  redraws
         if new_status and not self.status:
             self.status = True
-            self.widget.setStyleSheet("background-color: %s" %
-                                      self.status_colors[self.status].name())
+            self.update_color()
         elif not new_status and self.status:
             self.status = False
-            self.widget.setStyleSheet("background-color:  %s" %
-                                      self.status_colors[self.status].name())
+            self.update_color()
+
+    def update_color(self):
+        """Update status color of widget"""
+        style = "background-color: {}".format(
+            self.status_colors[self.status].name())
+        self.widget.setStyleSheet(style)
 
 
 # (Too many instance attributes) pylint: disable=R0902

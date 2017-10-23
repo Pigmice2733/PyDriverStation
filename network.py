@@ -15,8 +15,8 @@ class Network:
 
         self.table_name = table_name
 
-        self.networktables.initialize(server_ip)
-        self.table = self.networktables.getTable(self.table_name)
+        # Connect to server
+        self.change_server(server_ip)
 
     def change_server(self, new_ip):
         """Connect to different NetworkTables server
