@@ -112,6 +112,9 @@ class PyDriverStation(Ui_MainWindow):
         self.connect_buttons()
         self.setup_remote_ip_selector()
 
+        # Simulate autonomous button press to set initial game mode
+        self.mode_button_press(self.AutonomousModeButton)
+
         status_colors = {True: QColor(0, 180, 0), False: QColor(200, 0, 0)}
         self.connection_indicator = StatusIndicator(self.ConnectStatus,
                                                     status_colors)
