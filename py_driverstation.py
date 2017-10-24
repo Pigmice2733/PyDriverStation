@@ -206,6 +206,10 @@ class PyDriverStation(Ui_MainWindow):
         Sets mode buttons to checked/unchecked as if they were radio buttons.
         Updates game mode in NetworkTables.
         """
+        # Disable robot when mode is changed - fake button press to
+        #  update button gui
+        self.enabled_button_press(self.DisableButton)
+
         for mode_button in self.mode_buttons:
             if mode_button == pressed_button:
                 mode_button.setChecked(True)
@@ -241,9 +245,10 @@ class PyDriverStation(Ui_MainWindow):
     def set_network(self):
         """Call when the network has just been (re)initialized to
          set initial values"""
-        self.network.set_enabled(
-            self.enable_buttons_status[self.DisableButton])
-        self.network.set_game_mode(self.mode_names[self.AutonomousModeButton])
+        # Use fake button presses to set values so buttons are
+        #  visibly set to matching state
+        self.enabled_button_press(self.DisableButton)
+        self.mode_button_press(self.AutonomousModeButton)
 
     def close_application(self, event=None):
         """Cleanup and close application"""
