@@ -116,8 +116,7 @@ class PyDriverStation(Ui_MainWindow):
         self.connect_buttons()
         self.setup_remote_ip_selector()
 
-        # Simulate autonomous button press to set initial game mode
-        self.mode_button_press(self.AutonomousModeButton)
+        self.set_network()
 
         status_colors = {True: QColor(0, 180, 0), False: QColor(200, 0, 0)}
         self.connection_indicator = StatusIndicator(self.ConnectStatus,
@@ -234,8 +233,17 @@ class PyDriverStation(Ui_MainWindow):
         connects NetworkTables to correct robot.
         """
         self.config.remote_ip = new_ip
+        self.config.save_config()
 
         self.network.change_server(new_ip)
+        self.set_network()
+
+    def set_network(self):
+        """Call when the network has just been (re)initialized to
+         set initial values"""
+        self.network.set_enabled(
+            self.enable_buttons_status[self.DisableButton])
+        self.network.set_game_mode(self.mode_names[self.AutonomousModeButton])
 
     def close_application(self, event=None):
         """Cleanup and close application"""
