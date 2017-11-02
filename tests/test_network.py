@@ -19,14 +19,36 @@ class TestNetwork(unittest.TestCase):
         self.assertFalse(network_instance.connected())
 
     def test_change_server(self):
-        """Test whether `change_server` correctly switches NetworkTables server"""
+        """Test that `change_server` correctly switches NetworkTables
+         server"""
         networktables_mock = unittest.mock.Mock()
 
         network_instance = network.Network(networktables_mock, None, None)
         network_instance.change_server("localhost")
 
+        # Make sure Networktables was shutdown before network change
         self.assertTrue(networktables_mock.shutdown.called)
+        # Make sure new network server ip is correct
         networktables_mock.initialize.assert_called_with(server="localhost")
+
+    def test_table_reference(self):
+        """Test that the NetworkTable reference is a reference
+         to a table on the new network after a `change_server`"""
+        networktables_mock = unittest.mock.Mock()
+        table_mock = unittest.mock.Mock()
+        # When table is gotten from first network, table will be None,
+        #  from second network will return table_mock
+        networktables_mock.getTable.side_effect = [None, table_mock]
+
+        network_instance = network.Network(networktables_mock, None, None)
+
+        # Test initial Network.table value
+        self.assertTrue(network_instance.table is None)
+
+        network_instance.change_server("localhost")
+
+        # Test final value of Network.table
+        self.assertTrue(network_instance.table == table_mock)
 
     def test_set_game_mode(self):
         """Test whether `set_game_mode` correctly sets game mode"""

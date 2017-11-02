@@ -15,8 +15,8 @@ class Network:
 
         self.table_name = table_name
 
-        self.networktables.initialize(server_ip)
-        self.table = self.networktables.getTable(self.table_name)
+        # Connect to server
+        self.change_server(server_ip)
 
     def change_server(self, new_ip):
         """Connect to different NetworkTables server
@@ -25,6 +25,7 @@ class Network:
         """
         self.networktables.shutdown()
         self.networktables.initialize(server=new_ip)
+        self.table = self.networktables.getTable(self.table_name)
 
     def connected(self):
         """Is the network connected
@@ -34,14 +35,16 @@ class Network:
         """
         return self.networktables.isConnected()
 
-    def set_joystick_axis_value(self, joystick_number: int, axis_number: int, value: float):
+    def set_joystick_axis_value(self, joystick_number: int, axis_number: int,
+                                value: float):
         """Set a NetworkTable value. Set the joystick axis specified
         by `joystick` and `axis` to `value`.
         """
         key = "/joystick-" + str(joystick_number) + "/axis-" + str(axis_number)
         self.table.putNumber(key, value)
 
-    def set_joystick_button_value(self, joystick_number: int, button_number: int, value: bool):
+    def set_joystick_button_value(self, joystick_number: int,
+                                  button_number: int, value: bool):
         """Set a NetworkTable value. Set the joystick button specified
         by `joystick` and `button` to `value`.
         """

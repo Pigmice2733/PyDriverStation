@@ -74,15 +74,20 @@ class StatusIndicator:  # (Too few public methods) pylint: disable=R0903
          to correspond with new status
         """
         # Set status indicator color
-        # Once status is updated, don't update again to avoid unecessary redraws
+        # Once status is updated, don't update again to avoid unecessary
+        #  redraws
         if new_status and not self.status:
             self.status = True
-            self.widget.setStyleSheet(
-                "background-color: %s" % self.status_colors[self.status].name())
+            self.update_color()
         elif not new_status and self.status:
             self.status = False
-            self.widget.setStyleSheet(
-                "background-color:  %s" % self.status_colors[self.status].name())
+            self.update_color()
+
+    def update_color(self):
+        """Update status color of widget"""
+        style = "background-color: {}".format(
+            self.status_colors[self.status].name())
+        self.widget.setStyleSheet(style)
 
 
 # (Too many instance attributes) pylint: disable=R0902
@@ -111,9 +116,11 @@ class PyDriverStation(Ui_MainWindow):
         self.connect_buttons()
         self.setup_remote_ip_selector()
 
+        self.set_network()
+
         status_colors = {True: QColor(0, 180, 0), False: QColor(200, 0, 0)}
-        self.connection_indicator = StatusIndicator(
-            self.ConnectStatus, status_colors)
+        self.connection_indicator = StatusIndicator(self.ConnectStatus,
+                                                    status_colors)
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.update)
@@ -128,8 +135,8 @@ class PyDriverStation(Ui_MainWindow):
 
         scaled_geometry = QRect(
             (available_geometry.width() - scaled_width) / 2,
-            (available_geometry.height() - scaled_height) / 2,
-            scaled_width, scaled_height)
+            (available_geometry.height() - scaled_height) / 2, scaled_width,
+            scaled_height)
 
         self.main_window.setGeometry(scaled_geometry)
 
@@ -142,8 +149,10 @@ class PyDriverStation(Ui_MainWindow):
             self.TeleopModeButton: "teleop",
             self.TestModeButton: "test"
         }
-        self.mode_buttons = [self.AutonomousModeButton,
-                             self.TeleopModeButton, self.TestModeButton]
+        self.mode_buttons = [
+            self.AutonomousModeButton, self.TeleopModeButton,
+            self.TestModeButton
+        ]
 
         # Mapping between button and enabled(True)/disabled(False)
         self.enable_buttons_status = {
@@ -166,13 +175,10 @@ class PyDriverStation(Ui_MainWindow):
 
     def setup_remote_ip_selector(self):
         """Setup the remote ip selector input box"""
-        self.InputIP.setText(
-            self.config.remote_ip)
+        self.InputIP.setText(self.config.remote_ip)
 
         self.UpdateIPButton.clicked.connect(
-            lambda: self.ip_input_update(
-                self.InputIP.text())
-        )
+            lambda: self.ip_input_update(self.InputIP.text()))
 
     def update(self):
         """Update driver station"""
@@ -187,12 +193,12 @@ class PyDriverStation(Ui_MainWindow):
             joy_data = self.joysticks.get_joystick(joystick_num)
 
             for index, value in enumerate(joy_data["axes"]):
-                self.network.set_joystick_axis_value(
-                    joystick_num, index, value)
+                self.network.set_joystick_axis_value(joystick_num, index,
+                                                     value)
 
             for index, value in enumerate(joy_data["buttons"]):
-                self.network.set_joystick_button_value(
-                    joystick_num, index, value)
+                self.network.set_joystick_button_value(joystick_num, index,
+                                                       value)
 
     def mode_button_press(self, pressed_button):
         """Event handler for mode button press
@@ -200,6 +206,10 @@ class PyDriverStation(Ui_MainWindow):
         Sets mode buttons to checked/unchecked as if they were radio buttons.
         Updates game mode in NetworkTables.
         """
+        # Disable robot when mode is changed - fake button press to
+        #  update button gui
+        self.enabled_button_press(self.DisableButton)
+
         for mode_button in self.mode_buttons:
             if mode_button == pressed_button:
                 mode_button.setChecked(True)
@@ -227,10 +237,20 @@ class PyDriverStation(Ui_MainWindow):
         connects NetworkTables to correct robot.
         """
         self.config.remote_ip = new_ip
+        self.config.save_config()
 
         self.network.change_server(new_ip)
+        self.set_network()
 
-    def close_application(self):
+    def set_network(self):
+        """Call when the network has just been (re)initialized to
+         set initial values"""
+        # Use fake button presses to set values so buttons are
+        #  visibly set to matching state
+        self.enabled_button_press(self.DisableButton)
+        self.mode_button_press(self.AutonomousModeButton)
+
+    def close_application(self, event=None):
         """Cleanup and close application"""
         self.timer.stop()
         self.main_window.close()
@@ -253,6 +273,7 @@ def main(server_ip):
     app = QApplication(sys.argv)
     window = QMainWindow()
     driver_station = PyDriverStation(window, network, config, joysticks)
+    window.closeEvent = driver_station.close_application
     window.show()
 
     try:
