@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1963</width>
-    <height>756</height>
+    <width>1213</width>
+    <height>402</height>
    </rect>
   </property>
   <property name="font">
@@ -63,8 +63,8 @@
           </property>
           <property name="minimumSize">
            <size>
-            <width>380</width>
-            <height>60</height>
+            <width>0</width>
+            <height>0</height>
            </size>
           </property>
           <property name="maximumSize">
@@ -103,8 +103,8 @@
           </property>
           <property name="minimumSize">
            <size>
-            <width>120</width>
-            <height>60</height>
+            <width>0</width>
+            <height>0</height>
            </size>
           </property>
           <property name="maximumSize">
@@ -140,8 +140,8 @@
           </property>
           <property name="minimumSize">
            <size>
-            <width>120</width>
-            <height>60</height>
+            <width>0</width>
+            <height>0</height>
            </size>
           </property>
           <property name="maximumSize">
@@ -318,8 +318,8 @@
           </property>
           <property name="minimumSize">
            <size>
-            <width>200</width>
-            <height>60</height>
+            <width>0</width>
+            <height>0</height>
            </size>
           </property>
           <property name="maximumSize">
@@ -355,8 +355,8 @@
           </property>
           <property name="minimumSize">
            <size>
-            <width>200</width>
-            <height>60</height>
+            <width>0</width>
+            <height>0</height>
            </size>
           </property>
           <property name="maximumSize">
@@ -423,8 +423,8 @@
             </property>
             <property name="minimumSize">
              <size>
-              <width>120</width>
-              <height>60</height>
+              <width>0</width>
+              <height>0</height>
              </size>
             </property>
             <property name="maximumSize">
@@ -527,8 +527,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1963</width>
-     <height>47</height>
+     <width>1213</width>
+     <height>21</height>
     </rect>
    </property>
   </widget>
